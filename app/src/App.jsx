@@ -194,7 +194,7 @@ const styles = {
 
   title: {
     color: "#ffffff",
-    fontSize: "46px",
+    fontSize: "34px",
     margin: "0 0 20px",
   },
 
