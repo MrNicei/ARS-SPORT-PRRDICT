@@ -99,12 +99,16 @@ function App() {
 
               {selected === match && (
                 <div style={styles.analysis}>
-                  <h3>Match Analysis</h3>
-                  <p>
-                    The displayed probabilities are statistical estimates
-                    based on example football data. They are not guarantees.
-                  </p>
-                </div>
+<h3>Match Analysis</h3>
+<p><strong>{match.home}</strong> have a {match.homeWin}% estimated home-win probability, compared with {match.awayWin}% for <strong>{match.away}</strong>.</p>
+<div style={styles.factors}>
+<span>🏠 Home Win: {match.homeWin}%</span>
+<span>🤝 Draw: {match.draw}%</span>
+<span>✈️ Away Win: {match.awayWin}%</span>
+<span>⚽ Predicted Score: {match.score}</span>
+</div>
+<p>These figures are statistical estimates based on the available demo match data. They are not guarantees.</p>
+</div>
               )}
             </div>
           ))}
