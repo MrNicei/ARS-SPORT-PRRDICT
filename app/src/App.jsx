@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const matches = [
+const demoMatches = [
   {
     home: "Arsenal",
     away: "Chelsea",
@@ -28,6 +28,20 @@ const matches = [
 ];
 
 function App() {
+  const [apiMatches, setApiMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/matches")
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to load matches");
+        return res.json();
+      })
+      .then(data => setApiMatches(data.matches || []))
+      .catch(error => setApiError(error.message))
+      .finally(() => setLoading(false));
+  }, []);
   const [selected, setSelected] = useState(null);
 
   return (
@@ -55,39 +69,39 @@ function App() {
         <section>
           <div style={styles.sectionTitle}>
             <h2>Today's Predictions</h2>
-            <span style={styles.demo}>Demo data</span>
+            <span style={styles.demo}>{loading ? "Loading fixtures..." : apiError ? "API error" : "Live fixtures"}</span>
           </div>
 
-          {matches.map((match, index) => (
+          {apiMatches.map((match, index) => (
             <div key={index} style={styles.card}>
               <div style={styles.teams}>
-                <strong>{match.home}</strong>
+                <strong>{match.homeTeam}</strong>
                 <span>VS</span>
-                <strong>{match.away}</strong>
+                <strong>{match.awayTeam}</strong>
               </div>
 
               <div style={styles.line} />
 
               <div style={styles.probabilities}>
                 <div>
-                  <b>{match.homeWin}%</b>
+                  <b>Pending</b>
                   <span>Home Win</span>
                 </div>
 
                 <div>
-                  <b>{match.draw}%</b>
+                  <b>Pending</b>
                   <span>Draw</span>
                 </div>
 
                 <div>
-                  <b>{match.awayWin}%</b>
+                  <b>Pending</b>
                   <span>Away Win</span>
                 </div>
               </div>
 
               <div style={styles.score}>
                 <span>Predicted Score</span>
-                <strong>{match.score}</strong>
+                <strong>{match.score ? `${match.score.home ?? "-"} - ${match.score.away ?? "-"}` : "Not played"}</strong>
               </div>
 
               <button
@@ -100,7 +114,7 @@ function App() {
               {selected === match && (
                 <div style={styles.analysis}>
 <h3>Match Analysis</h3>
-<p><strong>{match.home}</strong> have a {match.homeWin}% estimated home-win probability, compared with {match.awayWin}% for <strong>{match.away}</strong>.</p>
+<p><strong>{match.homeTeam}</strong> have a {match.homeWin}% estimated home-win probability, compared with {match.awayWin}% for <strong>{match.awayTeam}</strong>.</p>
 <div style={styles.factors}>
 <span>🏠 Home Win: {match.homeWin}%</span>
 <span>🤝 Draw: {match.draw}%</span>
