@@ -6,3 +6,7 @@ app/dist/
 
 *.swp
 *.swo
+
+*.before-prediction-engine.jsx
+
+*.backup.js

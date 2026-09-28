@@ -1,31 +1,5 @@
-import { useEffect, useState } from "react";
-
-const demoMatches = [
-  {
-    home: "Arsenal",
-    away: "Chelsea",
-    homeWin: 58,
-    draw: 24,
-    awayWin: 18,
-    score: "2 - 1",
-  },
-  {
-    home: "Liverpool",
-    away: "Everton",
-    homeWin: 64,
-    draw: 22,
-    awayWin: 14,
-    score: "2 - 0",
-  },
-  {
-    home: "Barcelona",
-    away: "Valencia",
-    homeWin: 68,
-    draw: 19,
-    awayWin: 13,
-    score: "3 - 1",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { calculateLeagueAverages, calculateTeamStats, calculatePrediction } from "./engine/predict";
 
 function App() {
   const [apiMatches, setApiMatches] = useState([]);
@@ -43,6 +17,35 @@ function App() {
       .finally(() => setLoading(false));
   }, []);
   const [selected, setSelected] = useState(null);
+
+  const predictionMatches = useMemo(() => {
+    if (!apiMatches.length) return [];
+
+    const league = calculateLeagueAverages(apiMatches);
+
+    return apiMatches
+      .filter(
+        match =>
+          match.status !== "FINISHED" &&
+          match.status !== "POSTPONED" &&
+          match.status !== "CANCELLED"
+      )
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 10)
+      .map(match => {
+        const homeStats = calculateTeamStats(apiMatches, match.homeTeam);
+        const awayStats = calculateTeamStats(apiMatches, match.awayTeam);
+
+        return {
+          ...match,
+          prediction: calculatePrediction(
+            homeStats,
+            awayStats,
+            league
+          )
+        };
+      });
+  }, [apiMatches]);
 
   return (
     <div style={styles.page}>
@@ -72,7 +75,7 @@ function App() {
             <span style={styles.demo}>{loading ? "Loading fixtures..." : apiError ? "API error" : "Live fixtures"}</span>
           </div>
 
-          {apiMatches.map((match, index) => (
+          {predictionMatches.map((match, index) => (
             <div key={index} style={styles.card}>
               <div style={styles.teams}>
                 <strong>{match.homeTeam}</strong>
@@ -83,25 +86,29 @@ function App() {
               <div style={styles.line} />
 
               <div style={styles.probabilities}>
-                <div>
-                  <b>Pending</b>
-                  <span>Home Win</span>
-                </div>
+          <div>
+            <b>{match.prediction ? `${match.prediction.homeWin}%` : "Pending"}</b>
+            <span>🏠 Home Win</span>
+          </div>
 
-                <div>
-                  <b>Pending</b>
-                  <span>Draw</span>
-                </div>
+          <div>
+            <b>{match.prediction ? `${match.prediction.draw}%` : "Pending"}</b>
+            <span>⚖️ Draw</span>
+          </div>
 
-                <div>
-                  <b>Pending</b>
-                  <span>Away Win</span>
-                </div>
-              </div>
+          <div>
+            <b>{match.prediction ? `${match.prediction.awayWin}%` : "Pending"}</b>
+            <span>🚨 Away Win</span>
+          </div>
+        </div>
 
-              <div style={styles.score}>
+        <div style={styles.score}>
                 <span>Predicted Score</span>
-                <strong>{match.score ? `${match.score.home ?? "-"} - ${match.score.away ?? "-"}` : "Not played"}</strong>
+                <strong>
+            {match.prediction
+              ? `${match.prediction.predictedHomeGoals} - ${match.prediction.predictedAwayGoals}`
+              : "Pending"}
+          </strong>
               </div>
 
               <button
@@ -112,18 +119,68 @@ function App() {
               </button>
 
               {selected === match && (
-                <div style={styles.analysis}>
-<h3>Match Analysis</h3>
-<p><strong>{match.homeTeam}</strong> have a {match.homeWin}% estimated home-win probability, compared with {match.awayWin}% for <strong>{match.awayTeam}</strong>.</p>
-<div style={styles.factors}>
-<span>🏠 Home Win: {match.homeWin}%</span>
-<span>🤝 Draw: {match.draw}%</span>
-<span>✈️ Away Win: {match.awayWin}%</span>
-<span>⚽ Predicted Score: {match.score}</span>
-</div>
-<p>These figures are statistical estimates based on the available demo match data. They are not guarantees.</p>
-</div>
-              )}
+          <div style={styles.analysis}>
+            <h3>Match Analysis</h3>
+
+            <p>
+              <strong>{match.homeTeam}</strong> vs{" "}
+              <strong>{match.awayTeam}</strong>
+            </p>
+
+            <div style={styles.factors}>
+              <span>
+                🏠 Home Win: {match.prediction?.homeWin ?? 0}%
+              </span>
+
+              <span>
+                ⚖️ Draw: {match.prediction?.draw ?? 0}%
+              </span>
+
+              <span>
+                🚨 Away Win: {match.prediction?.awayWin ?? 0}%
+              </span>
+
+              <span>
+                🎯 Predicted Score:{" "}
+                {match.prediction
+                  ? `${match.prediction.predictedHomeGoals} - ${match.prediction.predictedAwayGoals}`
+                  : "Pending"}
+              </span>
+
+              <span>
+                ⚽ Expected Goals:{" "}
+                {match.prediction?.expectedHomeGoals ?? "-"} -{" "}
+                {match.prediction?.expectedAwayGoals ?? "-"}
+              </span>
+
+              <span>
+                🟢 Both Teams To Score:{" "}
+                {match.prediction?.btts ?? 0}%
+              </span>
+
+              <span>
+                📈 Over 2.5 Goals:{" "}
+                {match.prediction?.over25 ?? 0}%
+              </span>
+
+              <span>
+                📌 Top Outcome Probability:{" "}
+                {match.prediction?.confidence ?? 0}%
+              </span>
+
+              <span>
+                📊 Historical Matches Used:{" "}
+                {match.prediction?.sampleSize ?? 0}
+              </span>
+            </div>
+
+            <p>
+              These figures are statistical estimates generated from
+              available football data. They are not guarantees of
+              match outcomes.
+            </p>
+          </div>
+        )}
             </div>
           ))}
         </section>
