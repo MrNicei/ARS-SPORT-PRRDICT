@@ -137,7 +137,48 @@ export function calculateTeamStats(
 
     formPoints: average(points, 1.3)
   };
-}
+};
+
+const calibrateProbability = (probability, strength = 0.70) => {
+  if (probability <= 0 || probability >= 1) {
+    return probability;
+  }
+
+  return 1 / (
+    1 +
+    Math.pow(
+      (1 - probability) / probability,
+      strength
+    )
+  );
+};
+
+const calibrateProbabilities = (
+  home,
+  draw,
+  away,
+  strength = 0.70
+) => {
+  const calibratedHome =
+    calibrateProbability(home, strength);
+
+  const calibratedDraw =
+    calibrateProbability(draw, strength);
+
+  const calibratedAway =
+    calibrateProbability(away, strength);
+
+  const total =
+    calibratedHome +
+    calibratedDraw +
+    calibratedAway;
+
+  return {
+    home: calibratedHome / total,
+    draw: calibratedDraw / total,
+    away: calibratedAway / total
+  };
+};
 
 export function calculatePrediction(
   homeStats,
@@ -184,15 +225,28 @@ export function calculatePrediction(
     awayFormBoost;
 
   expectedHomeGoals =
-    expectedHomeGoals * (0.55 + homeReliability * 0.45) +
-    league.homeGoals * (0.45 - homeReliability * 0.45);
+    expectedHomeGoals *
+      (0.55 + homeReliability * 0.45) +
+    league.homeGoals *
+      (0.45 - homeReliability * 0.45);
 
   expectedAwayGoals =
-    expectedAwayGoals * (0.55 + awayReliability * 0.45) +
-    league.awayGoals * (0.45 - awayReliability * 0.45);
+    expectedAwayGoals *
+      (0.55 + awayReliability * 0.45) +
+    league.awayGoals *
+      (0.45 - awayReliability * 0.45);
 
-  expectedHomeGoals = clamp(expectedHomeGoals, 0.35, 3.2);
-  expectedAwayGoals = clamp(expectedAwayGoals, 0.25, 2.8);
+  expectedHomeGoals = clamp(
+    expectedHomeGoals,
+    0.35,
+    3.2
+  );
+
+  expectedAwayGoals = clamp(
+    expectedAwayGoals,
+    0.25,
+    2.8
+  );
 
   let homeWin = 0;
   let draw = 0;
@@ -209,9 +263,13 @@ export function calculatePrediction(
         poisson(homeGoals, expectedHomeGoals) *
         poisson(awayGoals, expectedAwayGoals);
 
-      if (homeGoals > awayGoals) homeWin += probability;
-      else if (homeGoals === awayGoals) draw += probability;
-      else awayWin += probability;
+      if (homeGoals > awayGoals) {
+        homeWin += probability;
+      } else if (homeGoals === awayGoals) {
+        draw += probability;
+      } else {
+        awayWin += probability;
+      }
 
       if (homeGoals > 0 && awayGoals > 0) {
         btts += probability;
@@ -229,21 +287,45 @@ export function calculatePrediction(
     }
   }
 
-  const total = homeWin + draw + awayWin;
+  const total =
+    homeWin +
+    draw +
+    awayWin;
 
   homeWin /= total;
   draw /= total;
   awayWin /= total;
 
+  /*
+   * V3 probability calibration.
+   * Validated strength: 0.70.
+   */
+  const calibrated =
+    calibrateProbabilities(
+      homeWin,
+      draw,
+      awayWin,
+      0.70
+    );
+
   scoreCandidates.sort(
-    (a, b) => b.probability - a.probability
+    (a, b) =>
+      b.probability - a.probability
   );
 
-  const bestScore = scoreCandidates[0];
+  const bestScore =
+    scoreCandidates[0];
 
-  const homePercent = Math.round(homeWin * 100);
-  const drawPercent = Math.round(draw * 100);
-  const awayPercent = 100 - homePercent - drawPercent;
+  const homePercent =
+    Math.round(calibrated.home * 100);
+
+  const drawPercent =
+    Math.round(calibrated.draw * 100);
+
+  const awayPercent =
+    100 -
+    homePercent -
+    drawPercent;
 
   return {
     homeWin: homePercent,
@@ -258,18 +340,27 @@ export function calculatePrediction(
       expectedAwayGoals.toFixed(2)
     ),
 
-    predictedHomeGoals: bestScore.homeGoals,
-    predictedAwayGoals: bestScore.awayGoals,
+    predictedHomeGoals:
+      bestScore.homeGoals,
+
+    predictedAwayGoals:
+      bestScore.awayGoals,
 
     btts: Math.round(btts * 100),
+
     over25: Math.round(over25 * 100),
 
     confidence: Math.round(
-      Math.max(homeWin, draw, awayWin) * 100
+      Math.max(
+        calibrated.home,
+        calibrated.draw,
+        calibrated.away
+      ) * 100
     ),
 
     sampleSize: Math.min(
-      homeStats.matches + awayStats.matches,
+      homeStats.matches +
+        awayStats.matches,
       20
     )
   };
