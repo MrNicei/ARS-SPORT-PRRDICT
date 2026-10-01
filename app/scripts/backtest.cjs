@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 function loadEngine() {
-  const source = fs.readFileSync("./app/src/engine/predict.js", "utf8");
+  const source = fs.readFileSync("./src/engine/predict.js", "utf8");
 
   const transformed = source
     .replace(/export function/g, "function")
@@ -38,7 +38,7 @@ async function getSeason(season) {
   );
 
   if (!response.ok) {
-    throw new Error(`Football data request failed: ${response.status}`);
+    throw new Error(`Football data request failed: ${response.status} - ${await response.text()}`);
   }
 
   const data = await response.json();
