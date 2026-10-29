@@ -5,9 +5,11 @@ function App() {
   const [apiMatches, setApiMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState("");
-
+const [selected, setSelected] = useState(null);
+const [selectedLeague, setSelectedLeague] = useState("PL");
+  
   useEffect(() => {
-    fetch("/api/matches")
+    fetch(`/api/matches?league=${selectedLeague}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to load matches");
         return res.json();
@@ -15,9 +17,8 @@ function App() {
       .then(data => setApiMatches(data.matches || []))
       .catch(error => setApiError(error.message))
       .finally(() => setLoading(false));
-  }, []);
-  const [selected, setSelected] = useState(null);
-
+  }, [selectedLeague]);
+  
   const predictionMatches = useMemo(() => {
     if (!apiMatches.length) return [];
 
@@ -67,6 +68,34 @@ function App() {
           <p style={styles.subtitle}>
             Statistical football analysis, probabilities and match insights.
           </p>
+          <div style={{ textAlign: "center", marginBottom: "30px" }}>
+  <label htmlFor="league-select" style={{ marginRight: "12px" }}>
+    Select League:
+  </label>
+
+  <select
+    id="league-select"
+    value={selectedLeague}
+    onChange={e => setSelectedLeague(e.target.value)}
+    style={{
+      padding: "12px",
+      borderRadius: "10px",
+      background: "#0d2135",
+      color: "#ffffff",
+      border: "1px solid #18e46f",
+      fontSize: "16px"
+    }}
+  >
+    <option value="PL">Premier League</option>
+    <option value="PD">La Liga</option>
+    <option value="SA">Serie A</option>
+    <option value="BL1">Bundesliga</option>
+    <option value="FL1">Ligue 1</option>
+    <option value="CL">UEFA Champions League</option>
+    <option value="PPL">Primeira Liga</option>
+    <option value="DED">Eredivisie</option>
+  </select>
+</div>
         </section>
 
         <section>
@@ -307,11 +336,12 @@ const styles = {
 
   teams: {
     display: "grid",
-    gridTemplateColumns: "1fr auto 1fr",
+    gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
     alignItems: "center",
-    gap: "20px",
-    fontSize: "25px",
+    gap: "8px",
+    fontSize: "clamp(14px, 4vw, 22px)",
     textAlign: "center",
+    overflowWrap: "anywhere",
   },
 
   line: {
