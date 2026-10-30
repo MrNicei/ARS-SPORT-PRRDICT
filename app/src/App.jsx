@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import TemuAd from "./components/TemuAd";
 import { calculateLeagueAverages, calculateTeamStats, calculatePrediction } from "./engine/predict";
 
 function App() {
@@ -97,7 +98,7 @@ const [selectedLeague, setSelectedLeague] = useState("PL");
   </select>
 </div>
         </section>
-
+<TemuAd />
         <section>
           <div style={styles.sectionTitle}>
             <h2>Today's Predictions</h2>
