@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import TemuAd from "./components/TemuAd";
+import PremiumPage from "./components/PremiumPage";
 import { calculateLeagueAverages, calculateTeamStats, calculatePrediction } from "./engine/predict";
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
   const [apiError, setApiError] = useState("");
 const [selected, setSelected] = useState(null);
 const [selectedLeague, setSelectedLeague] = useState("PL");
+  const [showPremium, setShowPremium] = useState(false);
   
   useEffect(() => {
     fetch(`/api/matches?league=${selectedLeague}`)
@@ -48,6 +50,8 @@ const [selectedLeague, setSelectedLeague] = useState("PL");
         };
       });
   }, [apiMatches]);
+
+  if (showPremium) return <PremiumPage onBack={() => setShowPremium(false)} />;
 
   return (
     <div style={styles.page}>
@@ -98,7 +102,23 @@ const [selectedLeague, setSelectedLeague] = useState("PL");
   </select>
 </div>
         </section>
-<TemuAd />
+<button
+          onClick={() => setShowPremium(true)}
+          style={{
+            width: "100%",
+            padding: "18px",
+            marginBottom: "25px",
+            border: "1px solid #18e46f",
+            borderRadius: "14px",
+            background: "#102c43",
+            color: "#18e46f",
+            fontSize: "19px",
+            fontWeight: "bold"
+          }}
+        >
+          👑 PREMIUM PREDICTIONS →
+        </button>
+        <TemuAd />
         <section>
           <div style={styles.sectionTitle}>
             <h2>Today's Predictions</h2>

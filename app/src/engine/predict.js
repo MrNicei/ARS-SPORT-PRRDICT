@@ -365,3 +365,36 @@ export function calculatePrediction(
     )
   };
 }
+
+export function getTopCorrectScores(
+  homeStats,
+  awayStats,
+  league,
+  limit = 6
+) {
+  const prediction = calculatePrediction(
+    homeStats,
+    awayStats,
+    league
+  );
+
+  const scores = [];
+
+  for (let home = 0; home <= 6; home++) {
+    for (let away = 0; away <= 6; away++) {
+      const probability =
+        poisson(home, prediction.expectedHomeGoals) *
+        poisson(away, prediction.expectedAwayGoals);
+
+      scores.push({
+        homeGoals: home,
+        awayGoals: away,
+        probability: Number((probability * 100).toFixed(2))
+      });
+    }
+  }
+
+  return scores
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, limit);
+}
