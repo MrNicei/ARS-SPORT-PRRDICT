@@ -35,6 +35,8 @@ export async function onRequestPost({ request, env }) {
     }
 
     const now = new Date();
+    const windowEnd = new Date(now);
+    windowEnd.setDate(windowEnd.getDate() + 7);
 
     const results = await Promise.all(
       Object.entries(LEAGUES).map(async ([leagueCode, leagueName]) => {
@@ -84,10 +86,15 @@ export async function onRequestPost({ request, env }) {
       const league = calculateLeagueAverages(matches);
 
       const upcoming = matches
-        .filter(match =>
-          ["SCHEDULED", "TIMED"].includes(match.status) &&
-          new Date(match.date) > now
-        )
+        .filter(match => {
+          const kickoff = new Date(match.date);
+          return (
+            ["SCHEDULED", "TIMED"].includes(match.status) &&
+            Number.isFinite(kickoff.getTime()) &&
+            kickoff >= now &&
+            kickoff <= windowEnd
+          );
+        })
         .sort((a, b) =>
           new Date(a.date) - new Date(b.date)
         );
@@ -128,7 +135,9 @@ export async function onRequestPost({ request, env }) {
     }
 
     predictions.sort(
-      (a, b) => b.probability - a.probability
+      (a, b) =>
+        new Date(a.date) - new Date(b.date) ||
+        b.probability - a.probability
     );
 
     return Response.json({
